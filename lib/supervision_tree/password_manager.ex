@@ -3,14 +3,15 @@ defmodule Memex.Env.PasswordManager do
   require Logger
   alias Memex.Utils
 
-  @redacted "***********" # this is the string we replace passwords with, so tht we don't keep real passwords in memory unencrypted
+  # this is the string we replace passwords with, so that we don't keep real passwords in memory unencrypted
+  @redacted "***********"
 
-  def start_link(params)  do
+  def start_link(params) do
     GenServer.start_link(__MODULE__, params, name: __MODULE__)
   end
 
   def init(env) do
-    Logger.info "#{__MODULE__} initializing..."
+    Logger.info("#{__MODULE__} initializing...")
     {:ok, env, {:continue, :open_passwords_file}}
   end
 
@@ -19,7 +20,7 @@ defmodule Memex.Env.PasswordManager do
       init_state = load_init_state_from_passwords_file(state)
       {:noreply, init_state}
     else
-      Logger.error """
+      Logger.error("""
       The mandatory environment variable `MEMEX_PASSWORD_KEY` could not be found.
 
       Without this environment variable, the Memex is not able to manage
@@ -36,7 +37,7 @@ defmodule Memex.Env.PasswordManager do
       Once this environment variable has been set, you must restart the
       Memex for it to take effect. Until then, functionality which utilizes
       passwords will fail.
-      """
+      """)
 
       {:stop, :normal, state}
     end
@@ -47,8 +48,11 @@ defmodule Memex.Env.PasswordManager do
   end
 
   def handle_call({:new_password, password}, _from, state) do
-    write_new_password({state, secret_key()}, password) #TODO we should check that we're not about to overwrite a password with exact same label
-    {:reply, {:ok, password}, state |> refetch_passwords_redacted()} # just re-fetch the list for now...
+    # TODO we should check that we're not about to overwrite a password with exact same label
+    IO.inspect(state)
+    write_new_password({state, secret_key()}, password)
+    # just re-fetch the list for now...
+    {:reply, {:ok, password}, state |> refetch_passwords_redacted()}
   end
 
   def handle_call({:find_password, params}, _from, state) do
@@ -70,7 +74,7 @@ defmodule Memex.Env.PasswordManager do
   def handle_call({:update_password, password, updates}, _from, state) when is_struct(password) do
     if password = password_exists?(password, state) do
       case overwrite_existing_password({state, secret_key()}, password, updates) do
-        :ok    -> {:reply, :ok, state |> refetch_passwords_redacted()}
+        :ok -> {:reply, :ok, state |> refetch_passwords_redacted()}
         :error -> {:reply, :error, state}
       end
     else
@@ -82,18 +86,19 @@ defmodule Memex.Env.PasswordManager do
     delete_password({state, secret_key()}, password)
     {:reply, :ok, state |> refetch_passwords_redacted()}
   end
-  
+
   def load_init_state_from_passwords_file(state) do
     if not File.exists?(passwords_file(state)) do
-      Logger.warn "Could not find a Passwords file for this environment. Creating one now..."
+      Logger.warn("Could not find a Passwords file for this environment. Creating one now...")
+
       passwords_file(state)
-      |> Utils.FileIO.write_maplist([], encrypted?: true, key: secret_key()) # write an empty list to the file
+      # write an empty list to the file
+      |> Utils.FileIO.write_maplist([], encrypted?: true, key: secret_key())
     end
 
-    init_state =
-      state |> refetch_passwords_redacted()
+    init_state = state |> refetch_passwords_redacted()
 
-    Logger.info "PasswordManager successfully loaded passwords from disc." 
+    Logger.info("PasswordManager successfully loaded passwords from disc.")
 
     init_state
   end
@@ -109,21 +114,24 @@ defmodule Memex.Env.PasswordManager do
     "#{dir}/passwords.json"
   end
 
-  # returns false if it does not exist, returns the password if it does exist
-  def password_exists?(%{uuid: uuid}, %{passwords: passwords}) do
-    passwords |> Enum.find(false, & &1.uuid == uuid)
+  def passwords_file(_) do
+    raise("Unable to find passwords file")
   end
 
-  #TODO move this to using the {state, key} pattern
+  # returns false if it does not exist, returns the password if it does exist
+  def password_exists?(%{uuid: uuid}, %{passwords: passwords}) do
+    passwords |> Enum.find(false, &(&1.uuid == uuid))
+  end
+
+  # TODO move this to using the {state, key} pattern
   def find_unredacted(%{uuid: uuid, label: label}, state) do
     passwords_file(state)
     |> Utils.FileIO.read_maplist(encrypted?: true, key: secret_key())
-    |> Enum.find(& &1.uuid == uuid and &1.label == label)
+    |> Enum.find(&(&1.uuid == uuid and &1.label == label))
   end
 
-
   def write_new_password({state, key}, %Memex.Password{} = password) do
-    #NOTE - it's important here that we go and fetch the data directly from disc
+    # NOTE - it's important here that we go and fetch the data directly from disc
     #       and then overwrite that data - this way, we cant accidentally corrupt the
     #       disc data by using the PasswordManager state (this actually happened...)
     new_passwords_list =
@@ -132,47 +140,50 @@ defmodule Memex.Env.PasswordManager do
       |> Enum.concat([password])
 
     passwords_file(state)
-    |> Utils.FileIO.write_maplist(new_passwords_list,
-                                  encrypted?: true, key: key)
+    |> Utils.FileIO.write_maplist(new_passwords_list, encrypted?: true, key: key)
   end
 
   def overwrite_existing_password(_state, password, %{password: @redacted}) do
-    raise "we are attempting to overwrite a password with invalid data!! #{inspect password}"
+    raise "we are attempting to overwrite a password with invalid data!! #{inspect(password)}"
   end
 
-  def overwrite_existing_password({state, key}, %Memex.Password{label: label, uuid: uuid} = password, updates) do
-
-    #NOTE - it's important here that we go and fetch the data directly from disc
+  def overwrite_existing_password(
+        {state, key},
+        %Memex.Password{label: label, uuid: uuid} = password,
+        updates
+      ) do
+    # NOTE - it's important here that we go and fetch the data directly from disc
     #       and then overwrite that data - this way, we cant accidentally corrupt the
     #       disc data by using the PasswordManager state (this actually happened...)
     new_password =
       password
       |> find_unredacted(state)
-      |> Map.merge(updates) #TODO this could still be more secure... we could try & use the pipeline in Password struct
+      # TODO this could still be more secure... we could try & use the pipeline in Password struct
+      |> Map.merge(updates)
 
     new_passwords_list =
       passwords_file(state)
       |> Utils.FileIO.read_maplist(encrypted?: true, key: key)
-      |> Enum.reject(& &1.uuid == uuid and &1.label == label)
-      |> Enum.concat([new_password]) 
+      |> Enum.reject(&(&1.uuid == uuid and &1.label == label))
+      |> Enum.concat([new_password])
 
     passwords_file(state)
-    |> Utils.FileIO.write_maplist(new_passwords_list,
-                                  encrypted?: true, key: key)
+    |> Utils.FileIO.write_maplist(new_passwords_list, encrypted?: true, key: key)
   end
 
   def delete_password({state, key}, %{uuid: uuid, label: label}) do
     new_passwords_list =
       passwords_file(state)
       |> Utils.FileIO.read_maplist(encrypted?: true, key: key)
-      |> Enum.reject(& &1.uuid == uuid and &1.label == label)
+      |> Enum.reject(&(&1.uuid == uuid and &1.label == label))
 
     passwords_file(state)
     |> Utils.FileIO.write_maplist(new_passwords_list, encrypted?: true, key: key)
   end
 
   def reencrypt_with_new_secret_key do
-    raise "not possible yet" #TODO
+    # TODO
+    raise "not possible yet"
   end
 
   defp refetch_passwords_redacted(state) do
@@ -182,7 +193,8 @@ defmodule Memex.Env.PasswordManager do
   defp fetch_redacted_passwords_from_disc(state, key) do
     passwords_file(state)
     |> Utils.FileIO.read_maplist(encrypted?: true, key: key)
-    |> Enum.map(fn pword -> pword |> Map.replace!(:password, @redacted) end) # dont keep unencrypted passwords in memory...
+    # dont keep unencrypted passwords in memory...
+    |> Enum.map(fn pword -> pword |> Map.replace!(:password, @redacted) end)
   end
 
   defp secret_key do

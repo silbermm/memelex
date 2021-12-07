@@ -1,6 +1,6 @@
 defmodule Memex.TidBit do
   @moduledoc """
-  modelled after the `tiddler` of TiddlyWiki.
+  Modeled after the `tiddler` of TiddlyWiki.
 
   https://tiddlywiki.com/#TiddlerFields
 
@@ -17,29 +17,38 @@ defmodule Memex.TidBit do
   @derive Jason.Encoder
 
   defstruct [
-
-      uuid:  nil,       # each tiddler has a UUID
-      title: nil,       # the unique name for this tidbit
-      data:  nil,       # the body text of the tidbit
-
-      modified: nil,    # The time this tidbit was last modified
-      modifier: nil,    # The name of the last person to modify this TidBit
-      created:  nil,    # the date this tidbit was created
-      creator:  nil,    # the name of the person who created ths TidBit
-
-      type:      [],    # the content-type of a tidbit - a list of strings
-      tags:      [],    # a list of tags associated with a TidBit
-      links:     [],    # a list of all the linked TidBits
-      backlinks: [],    # a list of all the Tidbits which link to this one
-
-      status:  nil,     # an internal flag - we can "archive" TidBits this way
-
-      history: nil,     # each time a TidBit changes, we track the history #TODO
-      
-      caption: nil,     # the text to be displayed in a tab or button
-      meta:    [],      # a place to put extra data, e.g. `due_date`
-
-      module: __MODULE__ # this allows us to reconstruct the correct Elixir struct from the JSON text files
+    # each tiddler has a UUID
+    uuid: nil,
+    # the unique name for this tidbit
+    title: nil,
+    # the body text of the tidbit
+    data: nil,
+    # The time this tidbit was last modified
+    modified: nil,
+    # The name of the last person to modify this TidBit
+    modifier: nil,
+    # the date this tidbit was created
+    created: nil,
+    # the name of the person who created ths TidBit
+    creator: nil,
+    # the content-type of a tidbit - a list of strings
+    type: [],
+    # a list of tags associated with a TidBit
+    tags: [],
+    # a list of all the linked TidBits
+    links: [],
+    # a list of all the Tidbits which link to this one
+    backlinks: [],
+    # an internal flag - we can "archive" TidBits this way
+    status: nil,
+    # each time a TidBit changes, we track the history #TODO
+    history: nil,
+    # the text to be displayed in a tab or button
+    caption: nil,
+    # a place to put extra data, e.g. `due_date`
+    meta: [],
+    # this allows us to reconstruct the correct Elixir struct from the JSON text files
+    module: __MODULE__
   ]
 
   @doc ~s(This is here for the sake of the nice API: TidBit.new/1)
@@ -60,7 +69,7 @@ defmodule Memex.TidBit do
     Memex.My.Wiki.find(search_term)
   end
 
-  def open(%{type: ["external"|_rest]} =  tidbit) do
+  def open(%{type: ["external" | _rest]} = tidbit) do
     # opens external tidbits with Gedit 
   end
 
@@ -89,5 +98,4 @@ defmodule Memex.TidBit do
   def construct_link_string(%{title: t, uuid: uuid}) do
     "#{t}-[#{t}/#{uuid}]"
   end
-
 end

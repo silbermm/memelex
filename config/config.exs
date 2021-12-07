@@ -1,22 +1,20 @@
 import Config
 
-
-config :elixir,
-  :time_zone_database, Tzdata.TimeZoneDatabase
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :logger,
-  :console,
-     format: "[$level] $message $metadata\n" # I like to remove the newline, which is there by default
+       :console,
+       # I like to remove the newline, which is there by default
+       format: "[$level] $message $metadata\n"
 
 config :memex,
-  text_editor_shell_command: "subl"
+  text_editor_shell_command: "vim"
 
 config :memex,
   environment: %{
-    name: "JediLuke",
-    memex_directory: "/Users/luke/memex/JediLuke",
-    backups_directory: "/Users/luke/memex/backups/JediLuke"
+    name: "silbermm",
+    memex_directory: "/Users/silbermm/Documents/memex/silbermm",
+    backups_directory: "/Users/silbermm/Documents/memex/backups/silbermm"
   }
-
 
 import_config "#{config_env()}.exs"

@@ -137,7 +137,7 @@ to function correctly, so they must be declared.
 To generate a good password, use the following Elixir code:
 
 ```
-:crypto.strong_rand_bytes(30) |> :base64.encode
+:crypto.strong_rand_bytes(16) |> :base64.encode
 ```
 
 Then (assuming you are using bash shell, other shells will have different
@@ -159,7 +159,9 @@ be limited.
 
 Assuming you have created the memex directory and updated your `dev.exs`
 file - we start the memex as a typical Elixir application, in `dev` mode,
-opening up an IEx console (which is how we primarily interact with the Memex).
+opening up an IEx console (which is how we primarily interact with the Memex). 
+
+> Be sure to run `mix deps.get` to pull in required dependencies.
 
 ```
 iex -S mix run
@@ -193,7 +195,7 @@ or
 
 > Memex.My.TODOs.new()
 
-They all have this siilar interface which is usually just "add this tag"
+They all have this similar interface which is usually just "add this tag"
 
 ## Using the `my_customizations.ex` module in your Memex
 
